@@ -22,7 +22,7 @@ const wsServer = new Server(httpServer, {
         origin: ["https://admin.socket.io"],
         credentials: true
     }
-});
+}); // 관리자 화면 세팅 (추가적으로 로그인 정보도 만들 수 있음)
 instrument(wsServer, {
     auth: false
 })
