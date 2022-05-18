@@ -11,6 +11,7 @@ call.hidden = true;
 let myStream;
 let muted = false;
 let cameraOff = false;
+let roomName;
 let myPeerConnection;
 
 async function getCameras() {
@@ -87,7 +88,6 @@ camerasSelect.addEventListener("input", handleCamerasChange);
 const welcome = document.getElementById("welcome");
 const welcomeForm = welcome.querySelector("form");
 
-let roomName;
 
 async function initCall() {
     welcome.hidden = true;
@@ -108,33 +108,49 @@ welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 
 
 //////////// socket code
-socket.on("welcome", async () => {
+socket.on("welcome", async() => {
+    console.log("offer send");
     const offer = await myPeerConnection.createOffer();
     myPeerConnection.setLocalDescription(offer);
     socket.emit("offer", offer, roomName);
-}); // 방장이 실행
+});
 
-socket.on("offer", async (offer) => {
+socket.on("offer", async(offer) => {
+    console.log("offer recive");
     myPeerConnection.setRemoteDescription(offer);
     const answer = await myPeerConnection.createAnswer();
     myPeerConnection.setLocalDescription(answer);
+    console.log("answer send");
     socket.emit("answer", answer, roomName);
-}); // 참여자가 실행
+});
 
 socket.on("answer", (answer) => {
+    console.log("answer recive");
     myPeerConnection.setRemoteDescription(answer);
-}); 
+});
+
+socket.on("ice", (ice) => {
+    console.log("ice recive");
+    myPeerConnection.addIceCandidate(ice);
+});
 
 //////////// rtc
 function makeConnection() {
     myPeerConnection = new RTCPeerConnection();
     myPeerConnection.addEventListener("icecandidate", handleIce);
-    console.log(myStream);
-    myStream.getTracks().forEach((track) => 
-        myPeerConnection.addTrack(track, myStream)
-    );
+    myPeerConnection.addEventListener("addstream", handleAddStream);
+    myStream.getTracks().forEach((track) => {
+        myPeerConnection.addTrack(track, myStream);
+    });
 }
 
 function handleIce(data){
-    console.log(data);
+    console.log("ice send");
+    socket.emit("ice", data.candidate, roomName);
+}
+
+function handleAddStream(data){
+    console.log("got an event from my peer");
+    const peerFace = document.getElementById("peerFace");
+    peerFace.srcObject = data.stream;
 }
